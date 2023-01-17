@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+
+import sympy as sp
+import os
+import subprocess
+from random import randint
+
+tmpc="/tmp/rat2c.c"
+tmpe="/tmp/rat2c.exe"
+
+x, y, z = sp.var("x y z")
+
+n = 5
+maxp = 10
+maxt = 10
+ps = [
+    sum(randint(-9,9) * x**randint(0,maxp) * y**randint(0,maxp) * z**randint(0,maxp) for i in range(maxt))
+    for k in range(n)
+]
+exs = [ps[k]/ps[(k+1)%n] for k in range(n)]
+tmps = [f"/tmp/rat2c_{k}.ex" for k in range(n)]
+for tmp, ex in zip(tmps, exs):
+    with open(tmp, "w") as f: f.write(str(ex))
+with open(tmpc, "w") as f:
+    f.write("#include<math.h>\n")
+    f.write("#include<stdio.h>\n")
+    f.write("#include<stdlib.h>\n")
+    f.write("#define quo(a,b) ((a)/(b))\n")
+    f.flush()
+    subprocess.check_call(["./rat2c", *tmps], stdout=f, stderr=subprocess.DEVNULL)
+    f.write("int main(int argc, char *argv[]) {\n")
+    f.write(f"  double r[{n}];\n")
+    f.write("  function(r,strtod(argv[1],NULL),strtod(argv[2],NULL),strtod(argv[3],NULL));\n")
+    for k in range(n):
+        f.write(f"  printf(\"%.16e\\n\",r[{k}]);\n")
+    f.write("  return 0;\n")
+    f.write("}\n")
+    f.flush()
+subprocess.check_call(["cc", "-o", tmpe, tmpc, "-lm"])
+valmap = {x: randint(2,99), y: randint(2,99), z: randint(2,99)}
+values1 = subprocess.check_output([tmpe, *[str(v) for v in valmap.values()]], encoding="utf8")
+values1 = [float(val) for val in values1.splitlines()]
+print(values1)
+values2 = [ex.subs(valmap) for ex in exs]
+print([float(v.n()) for v in values2])
+print([float(2*abs(v1-v2)/abs(v1+v2)) for v1, v2 in zip(values1, values2)])
+
+for tmp in tmps: os.unlink(tmp)
+os.unlink(tmpc)
+os.unlink(tmpe)
