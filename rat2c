@@ -87,7 +87,7 @@ def poly2form(expressions, variables, functions):
     return code.split("_SPLIT_HERE_;")[:-1]
 
 rx_simplearg = re.compile(r" *(?:[a-zA-Z_][a-zA-Z0-9_]+|[0-9]*) *")
-rx_term = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(?!\()")
+rx_term = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
 rx_fn = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(?=\()")
 
 def hash_expression(exprhash, text):
@@ -218,8 +218,8 @@ for idx, fname in enumerate(argv):
     else:
         with open(fname, "r") as f:
             expression = f.read().strip()
-    variables = sorted(list(set(re.findall(rx_term, expression))))
-    functions = sorted(list(set(re.findall(rx_fn, expression))))
+    functions = set(re.findall(rx_fn, expression))
+    variables = set(re.findall(rx_term, expression)) - functions
     assert "result" not in variables
     assert "result" not in functions
     allvars.update(variables)

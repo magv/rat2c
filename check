@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import sympy as sp
 import os
 import subprocess
+import sympy as sp
 from random import randint
 
 tmpc="/tmp/rat2c.c"
@@ -15,9 +15,10 @@ maxp = 10
 maxt = 10
 ps = [
     sum(randint(-9,9) * x**randint(0,maxp) * y**randint(0,maxp) * z**randint(0,maxp) for i in range(maxt))
-    for k in range(n)
-]
-exs = [ps[k]/ps[(k+1)%n] for k in range(n)]
+    for k in range(n)]
+exs = [
+    ps[k]*sp.atan2(ps[(k+1)%n]/ps[(k+2)%n],ps[(k+3)%n])
+    for k in range(n)]
 tmps = [f"/tmp/rat2c_{k}.ex" for k in range(n)]
 for tmp, ex in zip(tmps, exs):
     with open(tmp, "w") as f: f.write(str(ex))
