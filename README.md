@@ -31,7 +31,7 @@ for example for the `double` type one could use
 
 ## Usage
 
-`rat2c` [`-a` *names*] [`-f` *name*] [`-t` *type*] [`-F` *command*] [`-O` *level*] *file* *...*
+`rat2c` [`-a` *names*] [`-f` *name*] [`-t` *type*] [`-F` *command*] [`-O` *level*] [`-W` *number*] *file* *...*
 
 ## Options
 

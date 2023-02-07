@@ -27,7 +27,7 @@ Description:
         #define quo(a,b) ((double)(a)/(double)(b))
 
 Usage:
-    rat2c [-a names] [-f name] [-t type] [-F command] [-O level] file ...
+    rat2c [-a names] [-f name] [-t type] [-F command] [-O level] [-W number] file ...
 Options:
     -a names    use this list of variables as the function argument
     -f name     use this function name (default: function)
