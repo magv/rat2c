@@ -17,8 +17,15 @@ Description:
     better.
 
     The power operation will be formatted as pow(x,n) in the
-    output. Fractional numbers will become quo(num,den). These
-    two functions should be appropriately defined by the user.
+    output. Fractional numbers will become quo(num,den). The
+    inverse operation will become inv(x). These three functions
+    should be appropriately defined by the user in the source
+    code, for example for the 'double' type one could use
+
+        #include <math.h> // for pow(x,n)
+        #define inv(x) ((double)1/(double)(x))
+        #define quo(a,b) ((double)(a)/(double)(b))
+
 Usage:
     rat2c [-a names] [-f name] [-t type] [-F command] [-O level] file ...
 Options:
@@ -40,9 +47,6 @@ import tempfile
 def log(*msg):
     print("*", *msg, file=sys.stderr)
 
-def sed(text, rx, template):
-    return re.sub(rx, template, text, flags=re.M)
-
 FORM = "form"
 FORM_O_LEVEL = 4
 FORM_WORKSPACE = "50G"
@@ -59,6 +63,9 @@ for opt, val in optv:
     if opt == "-f": FUNCTION_NAME = val
     if opt == "-t": VAR_TYPE = val
     if opt == "-h": print(__doc__.strip()); exit(0)
+
+def sed(text, rx, template):
+    return re.sub(rx, template, text, flags=re.M)
 
 def poly2form(expressions, variables, functions):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".frm") as f:
@@ -91,6 +98,8 @@ def poly2form(expressions, variables, functions):
     code = sed(code, r"tmpO\[([0-9]*)\]", fr"tmpf\1")
     code = sed(code, r"[.]E[+]0([^0-9])", r"\1")
     code = sed(code, r"([0-9]+)[.]/([0-9]+)[.]", r"quo(\1,\2)")
+    code = sed(code, r"\bpow\(([^,]*),-1\)", r"inv(\1)")
+    code = sed(code, r"\bpow\(([^,]*),-([0-9]*)\)", r"inv(pow(\1,\2))")
     return code.split("_SPLIT_HERE_;")[:-1]
 
 rx_simplearg = re.compile(r" *(?:[a-zA-Z_][a-zA-Z0-9_]+|[0-9]*) *")
