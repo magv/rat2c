@@ -25,7 +25,7 @@ two functions should be appropriately defined by the user.
 
 ## Usage
 
-`rat2c` [`-a` *names*] [`-f` *name*] [`-t` *type*] [`-O` *level*] *file* *...*
+`rat2c` [`-a` *names*] [`-f` *name*] [`-t` *type*] [`-F` *command*] [`-O` *level*] *file* *...*
 
 ## Options
 
@@ -40,6 +40,10 @@ two functions should be appropriately defined by the user.
 * `-t` *type*
 
     Use this type for variables (default: `double`).
+
+* `-F` *command*
+
+    Use this FORM executable (default: `form`).
 
 * `-O` *level*
 

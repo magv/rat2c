@@ -20,11 +20,12 @@ Description:
     output. Fractional numbers will become quo(num,den). These
     two functions should be appropriately defined by the user.
 Usage:
-    rat2c [-a names] [-f name] [-t type] [-O level] file ...
+    rat2c [-a names] [-f name] [-t type] [-F command] [-O level] file ...
 Options:
     -a names    use this list of variables as the function argument
     -f name     use this function name (default: function)
     -t type     use this type for variables (default: double)
+    -F command  use this FORM executable (default: form)
     -O level    use this FORM optimization level (default: 4)
 """
 
@@ -41,13 +42,15 @@ def log(*msg):
 def sed(text, rx, template):
     return re.sub(rx, template, text, flags=re.M)
 
+FORM = "form"
 FORM_O_LEVEL = 4
 FUNCTION_NAME = "function"
 FUNCTION_ARGS = None
 VAR_TYPE = "double"
 
-optv, argv = getopt.gnu_getopt(sys.argv[1:], "hO:a:f:t:")
+optv, argv = getopt.gnu_getopt(sys.argv[1:], "hF:O:a:f:t:")
 for opt, val in optv:
+    if opt == "-F": FORM = val
     if opt == "-O": FORM_O_LEVEL = val
     if opt == "-a": FUNCTION_ARGS = [a for a in val.split(",") if a]
     if opt == "-f": FUNCTION_NAME = val
@@ -75,7 +78,7 @@ def poly2form(expressions, variables, functions):
             f.write(f"#write <{f.name}.out> \"_SPLIT_HERE_;\"\n")
         f.write(".end\n")
         f.flush()
-        subprocess.check_call(["form", "-q", f.name], stdout=sys.stderr)
+        subprocess.check_call([FORM, "-q", f.name], stdout=sys.stderr)
         with open(f.name + ".out", "r") as fo:
             code = fo.read()
         os.unlink(f.name + ".out")
