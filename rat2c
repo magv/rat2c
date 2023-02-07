@@ -97,7 +97,7 @@ rx_simplearg = re.compile(r" *(?:[a-zA-Z_][a-zA-Z0-9_]+|[0-9]*) *")
 rx_term = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
 rx_fn = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(?=\()")
 
-def hash_expression(exprhash, text):
+def hash_expression(var2expr, expr2var, text):
     parts = []
     subparts = []
     lastpos = 0
@@ -113,7 +113,7 @@ def hash_expression(exprhash, text):
         elif c == ")":
             depth -= 1
             if depth == 0:
-                value = hash_expression(exprhash, text[lastpos:pos])
+                value = hash_expression(var2expr, expr2var, text[lastpos:pos])
                 subparts.append(value)
                 lastpos = pos + 1
         elif c == ",":
@@ -124,18 +124,26 @@ def hash_expression(exprhash, text):
                 if re.fullmatch(rx_simplearg, expr):
                     parts.append(expr)
                 else:
-                    tmp = f"tmpbr{len(exprhash)}"
-                    exprhash[tmp] = "".join(subparts)
-                    parts.append(tmp)
+                    if expr not in expr2var:
+                        tmp = f"tmpbr{len(var2expr)}"
+                        var2expr[tmp] = expr
+                        expr2var[expr] = tmp
+                        parts.append(tmp)
+                    else:
+                        parts.append(expr2var[expr])
                 subparts = []
     subparts.append(text[lastpos:])
     expr = "".join(subparts)
     if re.fullmatch(rx_simplearg, expr):
         parts.append(expr)
     else:
-        tmp = f"tmpbr{len(exprhash)}"
-        exprhash[tmp] = "".join(subparts)
-        parts.append(tmp)
+        if expr not in expr2var:
+            tmp = f"tmpbr{len(var2expr)}"
+            var2expr[tmp] = expr
+            expr2var[expr] = tmp
+            parts.append(tmp)
+        else:
+            parts.append(expr2var[expr])
     return "(" + ",".join(parts) + ")"
 
 def uncompact(code):
@@ -236,8 +244,9 @@ for idx, fname in enumerate(argv):
     allfuns.update(functions)
     if variables: log(f"variables: {' '.join(variables)}")
     if functions: log(f"functions: {' '.join(functions)}")
-    value = hash_expression(allparts, expression)
+    value = hash_expression(allparts, {}, expression)
     allparts[f"result[{idx}]"] = allparts.pop(value.strip("()"))
+log(f"will optimize {len(allparts)} expressions")
 code = []
 for key, text in zip(allparts.keys(), poly2form(allparts.values(), allvars, allfuns)):
     assert "/" not in text
