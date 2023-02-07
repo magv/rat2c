@@ -63,18 +63,18 @@ def poly2form(expressions, variables, functions):
         if variables: f.write(f"S {','.join(variables)};\n")
         if functions: f.write(f"CF {','.join(functions)};\n")
         for expr in expressions:
-            f.write("local EXPR = (\n")
+            f.write("local tmpEXPR = (\n")
             f.write(expr)
             f.write("\n);\n")
             f.write(f"format O{FORM_O_LEVEL};\n")
             f.write(".sort;\n")
-            f.write("extraSymbols array TMP;\n")
+            f.write("extraSymbols array tmpO;\n")
             f.write("format 255;\n")
             f.write("format rational;\n")
             f.write("format C;\n")
-            f.write("#optimize EXPR\n")
+            f.write("#optimize tmpEXPR\n")
             f.write(f"#write <{f.name}.out> \"%O\"\n")
-            f.write(f"#write <{f.name}.out> \"%e\", EXPR\n")
+            f.write(f"#write <{f.name}.out> \"%e\", tmpEXPR\n")
             f.write(f"#write <{f.name}.out> \"_SPLIT_HERE_;\"\n")
         f.write(".end\n")
         f.flush()
@@ -84,7 +84,7 @@ def poly2form(expressions, variables, functions):
         os.unlink(f.name + ".out")
     code = sed(code, r"\\$|[ \t\n]", "")
     assert code[-1] == ";"
-    code = sed(code, r"TMP\[([0-9]*)\]", fr"tmpf\1")
+    code = sed(code, r"tmpO\[([0-9]*)\]", fr"tmpf\1")
     code = sed(code, r"[.]E[+]0([^0-9])", r"\1")
     code = sed(code, r"([0-9]+)[.]/([0-9]+)[.]", r"quo(\1,\2)")
     return code.split("_SPLIT_HERE_;")[:-1]
@@ -224,7 +224,9 @@ for idx, fname in enumerate(argv):
     functions = set(re.findall(rx_fn, expression))
     variables = set(re.findall(rx_term, expression)) - functions
     assert "result" not in variables
+    assert all(not name.startswith("tmp") for name in variables)
     assert "result" not in functions
+    assert all(not name.startswith("tmp") for name in functions)
     allvars.update(variables)
     allfuns.update(functions)
     if variables: log(f"variables: {' '.join(variables)}")
