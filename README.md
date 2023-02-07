@@ -49,6 +49,10 @@ two functions should be appropriately defined by the user.
 
     Use this FORM optimization level (default: `4`).
 
+* `-W` *number*
+
+    Set FORM's WorkSpace parameter to this (default: `50G`).
+
 ## Example
 
     $ echo 'x+y*x^2+z*x^3' | rat2c -

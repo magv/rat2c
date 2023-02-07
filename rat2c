@@ -27,6 +27,7 @@ Options:
     -t type     use this type for variables (default: double)
     -F command  use this FORM executable (default: form)
     -O level    use this FORM optimization level (default: 4)
+    -W number   set FORM's WorkSpace parameter to this (default: 50G)
 """
 
 import getopt
@@ -44,14 +45,16 @@ def sed(text, rx, template):
 
 FORM = "form"
 FORM_O_LEVEL = 4
+FORM_WORKSPACE = "50G"
 FUNCTION_NAME = "function"
 FUNCTION_ARGS = None
 VAR_TYPE = "double"
 
-optv, argv = getopt.gnu_getopt(sys.argv[1:], "hF:O:a:f:t:")
+optv, argv = getopt.gnu_getopt(sys.argv[1:], "hF:O:W:a:f:t:")
 for opt, val in optv:
     if opt == "-F": FORM = val
     if opt == "-O": FORM_O_LEVEL = val
+    if opt == "-W": FORM_WORKSPACE = val
     if opt == "-a": FUNCTION_ARGS = [a for a in val.split(",") if a]
     if opt == "-f": FUNCTION_NAME = val
     if opt == "-t": VAR_TYPE = val
@@ -59,6 +62,7 @@ for opt, val in optv:
 
 def poly2form(expressions, variables, functions):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".frm") as f:
+        f.write(f"#:WorkSpace {FORM_WORKSPACE}\n")
         f.write(f"auto S tmp;\n")
         if variables: f.write(f"S {','.join(variables)};\n")
         if functions: f.write(f"CF {','.join(functions)};\n")
