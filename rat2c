@@ -221,10 +221,11 @@ allparts = {}
 for idx, fname in enumerate(argv):
     log(f"loading {fname}")
     if fname == "-":
-        expression = sys.stdin.read().strip()
+        expression = sys.stdin.read()
     else:
         with open(fname, "r") as f:
-            expression = f.read().strip()
+            expression = f.read()
+    expression = re.sub(r"\s+", "", expression)
     functions = set(re.findall(rx_fn, expression))
     variables = set(re.findall(rx_term, expression)) - functions
     assert "result" not in variables
