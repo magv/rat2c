@@ -17,10 +17,11 @@ Description:
     better.
 
     The power operation will be formatted as pow(x,n) in the
-    output. Fractional numbers will become quo(num,den). The
-    inverse operation will become inv(x). These three functions
-    should be appropriately defined by the user in the source
-    code, for example for the 'double' type one could use
+    output (with integer n greater than 1). Fractional numbers
+    will become quo(num,den). The inverse operation will become
+    inv(x). These three functions should be appropriately defined
+    by the user in the source code, for example for the 'double'
+    type one could use
 
         #include <math.h> // for pow(x,n)
         #define inv(x) ((double)1/(double)(x))
@@ -100,6 +101,9 @@ def poly2form(expressions, variables, functions):
     code = sed(code, r"([0-9]+)[.]/([0-9]+)[.]", r"quo(\1,\2)")
     code = sed(code, r"\bpow\(([^,]*),-1\)", r"inv(\1)")
     code = sed(code, r"\bpow\(([^,]*),-([0-9]*)\)", r"inv(pow(\1,\2))")
+    code = sed(code, r"\bpow\(([a-zA-Z_][a-zA-Z0-9_]*),2\)", r"\1*\1")
+    code = sed(code, r"\bpow\(([a-zA-Z_][a-zA-Z0-9_]*),3\)", r"\1*\1*\1")
+    code = sed(code, r"\bpow\(([a-zA-Z_][a-zA-Z0-9_]*),4\)", r"(\1*\1)*(\1*\1)")
     return code.split("_SPLIT_HERE_;")[:-1]
 
 rx_simplearg = re.compile(r" *(?:[a-zA-Z_][a-zA-Z0-9_]+|[0-9]*) *")

@@ -16,10 +16,11 @@ optimized separately via FORM, so fewer parentheses is
 better.
 
 The power operation will be formatted as `pow(x,n)` in the
-output. Fractional numbers will become `quo(num,den)`. The
-inverse operation will become `inv(x)`. These three functions
-should be appropriately defined by the user in the source code,
-for example for the `double` type one could use
+output (with integer `n` greater than 1). Fractional numbers
+will become `quo(num,den)`. The inverse operation will become
+`inv(x)`. These three functions should be appropriately defined
+by the user in the source code, for example for the `double`
+type one could use
 
     #include <math.h> // for pow(x,n)
     #define inv(x) ((double)1/(double)(x))
