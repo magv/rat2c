@@ -20,7 +20,7 @@ Description:
     output (with integer n greater than 1). Fractional numbers
     will become quo(num,den). The inverse operation will become
     inv(x). These three functions should be appropriately defined
-    by the user in the source code, for example for the 'double'
+    by the user in the source code, for example for the `double`
     type one could use
 
         #include <math.h> // for pow(x,n)
@@ -29,6 +29,7 @@ Description:
 
 Usage:
     rat2c [-a names] [-f name] [-t type] [-F command] [-O level] [-W number] file ...
+
 Options:
     -a names    use this list of variables as the function argument
     -f name     use this function name (default: function)
@@ -69,7 +70,8 @@ def sed(text, rx, template):
     return re.sub(rx, template, text, flags=re.M)
 
 def poly2form(expressions, variables, functions):
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".frm") as f:
+    tmpdir = os.environ.get("TMP", os.environ.get("TMPDIR", "/tmp"))
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".frm", dir=tmpdir) as f:
         f.write(f"#:WorkSpace {FORM_WORKSPACE}\n")
         f.write(f"auto S tmp;\n")
         if variables: f.write(f"S {','.join(variables)};\n")
@@ -90,7 +92,10 @@ def poly2form(expressions, variables, functions):
             f.write(f"#write <{f.name}.out> \"_SPLIT_HERE_;\"\n")
         f.write(".end\n")
         f.flush()
-        subprocess.check_call([FORM, "-q", f.name], stdout=sys.stderr)
+        env = os.environ.copy()
+        env.setdefault("FORMTMP", tmpdir)
+        env.setdefault("FORMTMPSORT", tmpdir)
+        subprocess.check_call([FORM, "-q", f.name], stdout=sys.stderr, env=env)
         with open(f.name + ".out", "r") as fo:
             code = fo.read()
         os.unlink(f.name + ".out")
