@@ -2,15 +2,15 @@
 """
 Description:
     rat2c converts one or multiple rational expressions (given as
-    files) into a single C function, optimizing their evaluation
-    via FORM as described in arXiv:1310.7007 and arXiv:1707.06453,
-    and merging common subexpressions. The resulting C code is
-    printed to the standard output.
+    files) into a single C function, optimizing the evaluation of
+    any polynomials inside via FORM as described in arXiv:1310.7007
+    and arXiv:1707.06453, and merging common subexpressions. The
+    resulting C code is printed to the standard output.
 
     The input files can contain arbitrary arithmentic expressions
-    using operators `+`, `-`, `*`, `/`, and `^`, and function
-    calls given as `name(expr1,expr2,...)`. Variable and function
-    names should match `[a-zA-Z_][a-zA-Z0-9_]*`.
+    using operators `+`, `-`, `*`, `/`, and `^`, and function calls
+    given as `name(expr1,expr2,...)` or `name[expr1,expr2,...]`.
+    Variable and function names should match `[a-zA-Z_][a-zA-Z0-9_]*`.
 
     Each part of the expression enclosed into parentheses is
     optimized separately via FORM, so fewer parentheses is
@@ -113,22 +113,22 @@ def poly2form(expressions, variables, functions):
 
 rx_simplearg = re.compile(r" *(?:[a-zA-Z_][a-zA-Z0-9_]+|[0-9]*) *")
 rx_term = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
-rx_fn = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(?=\()")
+rx_fn = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(?=[\(\[])")
 
 def hash_expression(var2expr, expr2var, text):
     parts = []
     subparts = []
     lastpos = 0
     depth = 0
-    for m in re.finditer("[(),]", text):
+    for m in re.finditer(r"[()\[\],]", text):
         pos = m.start()
         c = text[pos]
-        if c == "(":
+        if c == "(" or c == "[":
             if depth == 0:
                 subparts.append(text[lastpos:pos])
                 lastpos = pos + 1
             depth += 1
-        elif c == ")":
+        elif c == ")" or c == "]":
             depth -= 1
             if depth == 0:
                 value = hash_expression(var2expr, expr2var, text[lastpos:pos])
