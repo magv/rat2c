@@ -95,7 +95,7 @@ def poly2form(expressions, variables, functions):
         env = os.environ.copy()
         env.setdefault("FORMTMP", tmpdir)
         env.setdefault("FORMTMPSORT", tmpdir)
-        subprocess.check_call([FORM, "-q", f.name], stdout=sys.stderr, env=env)
+        subprocess.check_call([FORM, "-M", "-Z", "-q", f.name], stdout=sys.stderr, env=env)
         with open(f.name + ".out", "r") as fo:
             code = fo.read()
         os.unlink(f.name + ".out")
