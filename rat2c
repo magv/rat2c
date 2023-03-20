@@ -248,7 +248,7 @@ allvars = set()
 allfuns = set()
 allparts = {}
 for idx, fname in enumerate(argv):
-    log(f"loading {fname}")
+    log(f"loading {fname!r}")
     if fname == "-":
         expression = sys.stdin.read()
     else:
@@ -263,13 +263,16 @@ for idx, fname in enumerate(argv):
     assert all(not name.startswith("tmp") for name in functions)
     allvars.update(variables)
     allfuns.update(functions)
-    if variables: log(f"variables: {' '.join(variables)}")
-    if functions: log(f"functions: {' '.join(functions)}")
+    if variables: log(f"variables: {' '.join(sorted(variables))}")
+    if functions: log(f"functions: {' '.join(sorted(functions))}")
     value = hash_expression(allparts, {}, expression)
     allparts[f"result[{idx}]"] = allparts.pop(value.strip("()"))
-log(f"will optimize {len(allparts)} expressions")
+log(f"will optimize {len(allparts)} expressions via FORM")
+formparts = poly2form(allparts.values(), allvars, allfuns)
+
+log(f"FORM finished, will deduplicate output")
 code = []
-for key, text in zip(allparts.keys(), poly2form(allparts.values(), allvars, allfuns)):
+for key, text in zip(allparts.keys(), formparts):
     assert "/" not in text
     lines = text[:-1].split(";")
     lines[-1] = f"{key}={lines[-1]}"
