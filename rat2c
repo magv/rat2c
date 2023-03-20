@@ -102,6 +102,7 @@ def poly2form(expressions, variables, functions):
             code = fo.read()
         os.unlink(f.name + ".out")
     code = sed(code, r"\\$|[ \t\n]", "")
+    code = sed(code, r";_\+=", "")
     assert code[-1] == ";"
     code = sed(code, r"tmpO\[([0-9]*)\]", fr"tmpf\1")
     code = sed(code, r"[.]E[+]0([^0-9])", r"\1")
