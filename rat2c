@@ -39,6 +39,7 @@ Options:
     -W number   set FORM's WorkSpace parameter to this (default: 50G)
 """
 
+import ast
 import getopt
 import os
 import re
@@ -70,6 +71,8 @@ def sed(text, rx, template):
     return re.sub(rx, template, text, flags=re.M)
 
 def poly2form(expressions, variables, functions):
+    if "inv" not in functions:
+        functions = ["inv"] + list(functions)
     tmpdir = os.environ.get("TMP", os.environ.get("TMPDIR", "/tmp"))
     with tempfile.NamedTemporaryFile(mode="w", suffix=".frm", dir=tmpdir) as f:
         f.write(f"#:WorkSpace {FORM_WORKSPACE}\n")
@@ -81,6 +84,7 @@ def poly2form(expressions, variables, functions):
             f.write(expr)
             f.write("\n);\n")
             f.write(f"format O{FORM_O_LEVEL};\n")
+            f.write(f"denominators inv;\n")
             f.write(".sort;\n")
             f.write("extraSymbols array tmpO;\n")
             f.write("format 255;\n")
@@ -105,13 +109,13 @@ def poly2form(expressions, variables, functions):
     code = sed(code, r";_\+=", "")
     assert code[-1] == ";"
     code = sed(code, r"tmpO\[([0-9]*)\]", fr"tmpf\1")
-    code = sed(code, r"[.]E[+]0([^0-9])", r"\1")
-    code = sed(code, r"([0-9]+)[.]/([0-9]+)[.]", r"quo(\1,\2)")
+    code = sed(code, r"[.]E\+0([^0-9])", r"\1")
+    code = sed(code, r"[.]([^0-9])", r"\1")
+    code = sed(code, r"([0-9]+)/([0-9]+)", r"quo(\1,\2)")
     code = sed(code, r"\bpow\(([^,]*),-1\)", r"inv(\1)")
     code = sed(code, r"\bpow\(([^,]*),-([0-9]*)\)", r"inv(pow(\1,\2))")
-    code = sed(code, r"\bpow\(([a-zA-Z_][a-zA-Z0-9_]*),2\)", r"\1*\1")
-    code = sed(code, r"\bpow\(([a-zA-Z_][a-zA-Z0-9_]*),3\)", r"\1*\1*\1")
-    code = sed(code, r"\bpow\(([a-zA-Z_][a-zA-Z0-9_]*),4\)", r"(\1*\1)*(\1*\1)")
+    assert "/" not in code
+    assert "." not in code
     return code.split("_SPLIT_HERE_;")[:-1]
 
 rx_simplearg = re.compile(r"[a-zA-Z0-9_*^]*")
@@ -166,6 +170,37 @@ def hash_expression(var2expr, expr2var, text):
         else:
             parts.append(expr2var[expr])
     return "(" + ",".join(parts) + ")"
+
+def expandpow(code):
+    def ccpow(ex, n):
+        if n == 0: return "1"
+        if n == 1: return ex
+        if n == 2: return f"{ex}*{ex}"
+        if n == 3: return f"{ex}*{ex}*{ex}"
+        ex1 = ccpow(ex, n//2)
+        tmp = f"tmpp{tmpidx[0]}"; tmpidx[0] += 1
+        extra.append((tmp, ex1))
+        if n & 1:
+            return f"{tmp}*{tmp}*{ex}"
+        else:
+            return f"{tmp}*{tmp}"
+    def repl(m):
+        ex, n = m.groups()
+        return ccpow(ex, int(n))
+    tmpidx = [0]
+    for var, val in code:
+        extra = []
+        val = re.sub(r"\bpow\(([a-zA-Z0-9_*]+),([0-9]+)\)", repl, val)
+        for x in extra:
+            yield x
+        yield var, val
+
+assert list(expandpow([("x", "pow(y,0)")])) == [("x", "1")]
+assert list(expandpow([("x", "pow(y,1)")])) == [("x", "y")]
+assert list(expandpow([("x", "pow(y,2)")])) == [("x", "y*y")]
+assert list(expandpow([("x", "pow(y,3)")])) == [("x", "y*y*y")]
+assert list(expandpow([("x", "pow(y,4)")])) == [("tmpp0", "y*y"), ("x", "tmpp0*tmpp0")]
+assert list(expandpow([("x", "pow(y,5)")])) == [("tmpp0", "y*y"), ("x", "tmpp0*tmpp0*y")]
 
 def uncompact(code):
     old2new = {}
@@ -244,6 +279,23 @@ def dedup(code):
                     key2val[key] = val
                     val2key[val] = key
 
+def print_function(name, T, args, code):
+    print(f"#define inv(x) (({T})1/({T})(x))")
+    print(f"#define quo(n,d) (({T})(n)/({T})(d))")
+    print("")
+    argstr = "".join(f",\n    const {T} {var}" for var in args)
+    print("void")
+    print(f"{name}(\n    {T} *result{argstr})")
+    print("{")
+    defined = set()
+    for var, val in code:
+        if var in defined or var.startswith("result"):
+            print(f"    {var} = {val};")
+        else:
+            print(f"    {T} {var} = {val};")
+            defined.add(var)
+    print("}")
+
 allvars = set()
 allfuns = set()
 allparts = {}
@@ -273,24 +325,15 @@ formparts = poly2form(allparts.values(), allvars, allfuns)
 log(f"FORM finished, will deduplicate output")
 code = []
 for key, text in zip(allparts.keys(), formparts):
-    assert "/" not in text
     lines = text[:-1].split(";")
     lines[-1] = f"{key}={lines[-1]}"
     code.extend(line.split("=", 1) for line in lines)
+
+code = expandpow(code)
 code = uncompact(code)
 code = dedup(code)
 code = reversed(list(lifetime(reversed(list(code)))))
 code = compact(code)
+
 argvars = FUNCTION_ARGS if FUNCTION_ARGS is not None else sorted(list(allvars))
-args = "".join(f",\n    const {VAR_TYPE} {var}" for var in argvars)
-print("void")
-print(f"{FUNCTION_NAME}(\n    {VAR_TYPE} *result{args})")
-print("{")
-defined = set()
-for var, val in code:
-    if var in defined or var.startswith("result"):
-        print(f"    {var} = {val};")
-    else:
-        print(f"    {VAR_TYPE} {var} = {val};")
-        defined.add(var)
-print("}")
+print_function(FUNCTION_NAME, VAR_TYPE, argvars, code)
